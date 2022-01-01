@@ -2,37 +2,21 @@
 {
     public class ObjectNotRegisteredException : Exception
     {
-        public ObjectNotRegisteredException(string message) : base(message) { }
-        public ObjectNotRegisteredException(string message, Exception ex) : base(message, ex) { }
+        public ObjectNotRegisteredException(Type t) : base($"Type '{t}' not registered. Use DbManager.RegisterDbObject method first") { }
     }
 
-    public class RequestFileAlreadyAddedException : Exception
+    public class InvalidQueriesFileException : Exception
     {
-        public RequestFileAlreadyAddedException(string message) : base(message) { }
-        public RequestFileAlreadyAddedException(string message, Exception ex) : base(message, ex) { }
+        public InvalidQueriesFileException(string message) : base(message) { }
     }
 
-    public class InvalidRequestFileException : Exception
+    public class InvalidDbObjectException : Exception
     {
-        public InvalidRequestFileException(string message) : base(message) { }
-        public InvalidRequestFileException(string message, Exception ex) : base(message, ex) { }
+        public InvalidDbObjectException(Type t) : base($"Type '{t}' does not have the attribute [DbObjectAttribute]") { }
     }
 
-    public class RequestFileNotFoundException : Exception
+    public class DbObjectAlreadyRegisteredException : Exception
     {
-        public RequestFileNotFoundException(string message) : base(message) { }
-        public RequestFileNotFoundException(string message, Exception ex) : base(message, ex) { }
-    }
-
-    public class RequestsNotFoundException : Exception
-    {
-        public RequestsNotFoundException(string message) : base(message) { }
-        public RequestsNotFoundException(string message, Exception ex) : base(message, ex) { }
-    }
-
-    public class RequestNotFoundException : Exception
-    {
-        public RequestNotFoundException(string message) : base(message) { }
-        public RequestNotFoundException(string message, Exception ex) : base(message, ex) { }
+        public DbObjectAlreadyRegisteredException(Type t) : base($"Type '{t}' alredy registered") { }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using FastMember;
 using System.Data;
 using System.Data.Common;
+using System.Reflection;
 using System.Xml;
 
 namespace Byte.Toolkit.Db
@@ -8,35 +9,18 @@ namespace Byte.Toolkit.Db
     public class DbManager : IDisposable
     {
         private bool _disposed;
-        private DbConnection _connection;
-        private DbProviderFactory _factory;
-        private DbTransaction _transaction;
-        private string _connectionString;
-        private string _provider;
-        private Dictionary<Type, TypeAccessor> _typeAccessors;
-        private Dictionary<Type, Dictionary<string, string>> _typeMappings;
-        private Dictionary<string, RequestFileManager> _requestFileManagers;
-        private Dictionary<string, Dictionary<string, string>> _requests;
 
         #region Constructors
 
-        /// <summary>
-        /// Create a new instance of DbManager with ConnectionString and Provider
-        /// </summary>
-        /// <param name="connectionString">Database connection string</param>
-        /// <param name="provider">Provider name</param>
         public DbManager(string connectionString, string provider)
         {
-            _connectionString = connectionString;
-            _provider = provider;
-            _factory = DbProviderFactories.GetFactory(_provider);
-            _connection = _factory.CreateConnection();
-            _connection.ConnectionString = _connectionString;
+            Factory = DbProviderFactories.GetFactory(provider);
+            Connection = Factory.CreateConnection();
+            Connection.ConnectionString = connectionString;
 
-            _typeAccessors = new Dictionary<Type, TypeAccessor>();
-            _typeMappings = new Dictionary<Type, Dictionary<string, string>>();
-            _requestFileManagers = new Dictionary<string, RequestFileManager>();
-            _requests = new Dictionary<string, Dictionary<string, string>>();
+            TypeAccessors = new Dictionary<Type, TypeAccessor>();
+            TypeColumnPropMappings = new Dictionary<Type, Dictionary<string, string>>();
+            Queries = new Dictionary<Type, Dictionary<string, string>>();
         }
 
         ~DbManager()
@@ -48,54 +32,15 @@ namespace Byte.Toolkit.Db
 
         #region Properties
 
-        public bool Disposed
-        {
-            get { return _disposed; }
-        }
-
-        public string ConnectionString
-        {
-            get { return _connectionString; }
-        }
-
-        public string Provider
-        {
-            get { return _provider; }
-        }
-
-        public DbProviderFactory Factory
-        {
-            get { return _factory; }
-        }
-
-        public DbConnection Connection
-        {
-            get { return _connection; }
-        }
-
-        public DbTransaction Transaction
-        {
-            get { return _transaction; }
-        }
-
-        public Dictionary<Type, TypeAccessor> TypeAccessors
-        {
-            get { return _typeAccessors; }
-        }
-
-        public Dictionary<Type, Dictionary<string, string>> TypeMappings
-        {
-            get { return _typeMappings; }
-        }
-
-        public Dictionary<string, Dictionary<string, string>> Requests
-        {
-            get { return _requests; }
-        }
+        public bool Disposed { get => _disposed; }
+        public DbProviderFactory Factory { get; private set; }
+        public DbConnection Connection { get; private set; }
+        public DbTransaction? Transaction { get; private set; }
+        private Dictionary<Type, TypeAccessor> TypeAccessors { get; set; }
+        private Dictionary<Type, Dictionary<string, string>> TypeColumnPropMappings { get; set; }
+        public Dictionary<Type, Dictionary<string, string>> Queries { get; private set; }
 
         #endregion
-
-        #region Public methods
 
         /// <summary>
         /// Open the connection to the database
@@ -105,7 +50,7 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            _connection.Open();
+            Connection.Open();
         }
 
         /// <summary>
@@ -116,7 +61,7 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            _connection.Close();
+            Connection.Close();
         }
 
         /// <summary>
@@ -127,7 +72,7 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            _transaction = _connection.BeginTransaction();
+            Transaction = Connection.BeginTransaction();
         }
 
         /// <summary>
@@ -139,15 +84,12 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            if (_transaction != null)
-            {
-                if (commit)
-                    _transaction.Commit();
-                else
-                    _transaction.Rollback();
+            if (commit)
+                Transaction?.Commit();
+            else
+                Transaction?.Rollback();
 
-                _transaction = null;
-            }
+            Transaction?.Dispose();
         }
 
         /// <summary>
@@ -158,7 +100,7 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            return _factory.CreateParameter();
+            return Factory.CreateParameter();
         }
 
         /// <summary>
@@ -172,7 +114,7 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            DbParameter param = _factory.CreateParameter();
+            DbParameter param = Factory.CreateParameter();
             param.ParameterName = name;
             param.Value = value;
             param.Direction = paramDirection;
@@ -188,29 +130,36 @@ namespace Byte.Toolkit.Db
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            _typeAccessors.Add(t, TypeAccessor.Create(t));
-            IDbObject obj = (IDbObject)Activator.CreateInstance(t);
-            _typeMappings.Add(t, obj.GetMapping());
+            if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
+                throw new InvalidDbObjectException(t);
+
+            if (TypeAccessors.ContainsKey(t) || TypeColumnPropMappings.ContainsKey(t))
+                throw new DbObjectAlreadyRegisteredException(t);
+
+            TypeAccessors.Add(t, TypeAccessor.Create(t));
+            TypeColumnPropMappings.Add(t, new Dictionary<string, string>());
+            
+            foreach(PropertyInfo prop in t.GetProperties())
+            {
+                DbColumnAttribute? attr = prop.GetCustomAttribute(typeof(DbColumnAttribute)) as DbColumnAttribute;
+
+                if (attr != null)
+                    TypeColumnPropMappings[t].Add(attr.ColumnName, prop.Name);
+            }
         }
 
-        /// <summary>
-        /// Execute a SQL request and stores the results in a DataTable
-        /// </summary>
-        /// <param name="request">SQL request</param>
-        /// <param name="parameters">Parameters</param>
-        /// <param name="table">DataTable</param>
-        public void FillDataTableWithRequest(string request, List<DbParameter> parameters, DataTable table)
+        public void FillDataTable(DataTable table, string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            using (DbCommand command = _connection.CreateCommand())
+            using (DbCommand command = Connection.CreateCommand())
             {
-                command.CommandType = CommandType.Text;
-                command.CommandText = request;
+                command.CommandType = commandType;
+                command.CommandText = commandText;
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
+                if (Transaction != null)
+                    command.Transaction = Transaction;
 
                 if (parameters != null && parameters.Count > 0)
                 {
@@ -218,7 +167,7 @@ namespace Byte.Toolkit.Db
                         command.Parameters.Add(param);
                 }
 
-                using (DbDataAdapter adapter = _factory.CreateDataAdapter())
+                using (DbDataAdapter adapter = Factory.CreateDataAdapter())
                 {
                     adapter.SelectCommand = command;
                     adapter.Fill(table);
@@ -226,24 +175,29 @@ namespace Byte.Toolkit.Db
             }
         }
 
-        /// <summary>
-        /// Execute a stored procedure and stores the results in a DataTable
-        /// </summary>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        /// <param name="table">DataTable</param>
-        public void FillDataTableWithProcedure(string procedureName, List<DbParameter> parameters, DataTable table)
+        public T? FillObject<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            using (DbCommand command = _connection.CreateCommand())
-            {
-                command.CommandType = CommandType.StoredProcedure;
-                command.CommandText = procedureName;
+            Type t = typeof(T);
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
+            if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
+                throw new InvalidDbObjectException(t);
+
+            if (!TypeColumnPropMappings.ContainsKey(t) || !TypeAccessors.ContainsKey(t))
+                throw new ObjectNotRegisteredException(t);
+
+            T obj = (T)Activator.CreateInstance(t);
+            TypeAccessor ta = TypeAccessors[t];
+
+            using (DbCommand command = Connection.CreateCommand())
+            {
+                command.CommandType = commandType;
+                command.CommandText = commandText;
+
+                if (Transaction != null)
+                    command.Transaction = Transaction;
 
                 if (parameters != null && parameters.Count > 0)
                 {
@@ -251,39 +205,56 @@ namespace Byte.Toolkit.Db
                         command.Parameters.Add(param);
                 }
 
-                using (DbDataAdapter adapter = _factory.CreateDataAdapter())
+                using (DbDataReader reader = command.ExecuteReader())
                 {
-                    adapter.SelectCommand = command;
-                    adapter.Fill(table);
+                    if (reader.Read())
+                    {
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            string fieldName = reader.GetName(i);
+
+                            if (TypeColumnPropMappings[t].ContainsKey(fieldName))
+                            {
+                                object readerValue = reader[fieldName];
+                                if (!(readerValue is DBNull))
+                                    ta[obj, TypeColumnPropMappings[t][fieldName]] = readerValue;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return default(T);
+                    }
+                    reader.Close();
                 }
             }
+
+            return obj;
         }
 
-        /// <summary>
-        /// Execute a SQL request and stores the results in a list of objects
-        /// </summary>
-        /// <typeparam name="T">Type of objects to return</typeparam>
-        /// <param name="request">SQL request</param>
-        /// <param name="parameters">Parameters</param>
-        public List<T> FillObjectsWithRequest<T>(string request, List<DbParameter> parameters)
+        public List<T> FillObjects<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            if (!_typeMappings.ContainsKey(typeof(T)) || !_typeAccessors.ContainsKey(typeof(T)))
-                throw new ObjectNotRegisteredException($"Type '{typeof(T).FullName}' not registered! Use DbManager RegisterDbObject method");
+            Type t = typeof(T);
+
+            if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
+                throw new InvalidDbObjectException(t);
+
+            if (!TypeColumnPropMappings.ContainsKey(t) || !TypeAccessors.ContainsKey(t))
+                throw new ObjectNotRegisteredException(t);
 
             List<T> list = new List<T>();
-            Dictionary<string, string> mappingList = _typeMappings[typeof(T)];
-            TypeAccessor ta = _typeAccessors[typeof(T)];
+            TypeAccessor ta = TypeAccessors[t];
 
-            using (DbCommand command = _connection.CreateCommand())
+            using (DbCommand command = Connection.CreateCommand())
             {
-                command.CommandType = CommandType.Text;
-                command.CommandText = request;
+                command.CommandType = commandType;
+                command.CommandText = commandText;
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
+                if (Transaction != null)
+                    command.Transaction = Transaction;
 
                 if (parameters != null && parameters.Count > 0)
                 {
@@ -295,17 +266,17 @@ namespace Byte.Toolkit.Db
                 {
                     while (reader.Read())
                     {
-                        T obj = (T)Activator.CreateInstance(typeof(T));
+                        T obj = (T)Activator.CreateInstance(t);
 
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
                             string fieldName = reader.GetName(i);
 
-                            if (mappingList.ContainsKey(fieldName))
+                            if (TypeColumnPropMappings[t].ContainsKey(fieldName))
                             {
                                 object readerValue = reader[fieldName];
                                 if (!(readerValue is DBNull))
-                                    ta[obj, mappingList[fieldName]] = readerValue;
+                                    ta[obj, TypeColumnPropMappings[t][fieldName]] = readerValue;
                             }
                         }
 
@@ -319,83 +290,18 @@ namespace Byte.Toolkit.Db
             return list;
         }
 
-        /// <summary>
-        /// Execute a stored procedure and stores the results in a list of objects
-        /// </summary>
-        /// <typeparam name="T">Type of objects to return</typeparam>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        public List<T> FillObjectsWithProcedure<T>(string procedureName, List<DbParameter> parameters)
+        public int ExecuteNonQuery(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            if (!_typeMappings.ContainsKey(typeof(T)) || !_typeAccessors.ContainsKey(typeof(T)))
-                throw new ObjectNotRegisteredException($"Type '{typeof(T).FullName}' not registered. Use DbManager RegisterDbObject method first");
-
-            List<T> list = new List<T>();
-            Dictionary<string, string> mappingList = _typeMappings[typeof(T)];
-            TypeAccessor ta = _typeAccessors[typeof(T)];
-
-            using (DbCommand command = _connection.CreateCommand())
+            using (DbCommand command = Connection.CreateCommand())
             {
-                command.CommandType = CommandType.StoredProcedure;
-                command.CommandText = procedureName;
+                command.CommandType = commandType;
+                command.CommandText = commandText;
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
-
-                if (parameters != null && parameters.Count > 0)
-                {
-                    foreach (DbParameter param in parameters)
-                        command.Parameters.Add(param);
-                }
-
-                using (DbDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        T obj = (T)Activator.CreateInstance(typeof(T));
-
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            string fieldName = reader.GetName(i);
-
-                            if (mappingList.ContainsKey(fieldName))
-                            {
-                                object readerValue = reader[fieldName];
-                                if (!(readerValue is DBNull))
-                                    ta[obj, mappingList[fieldName]] = readerValue;
-                            }
-                        }
-
-                        list.Add(obj);
-                    }
-
-                    reader.Close();
-                }
-            }
-
-            return list;
-        }
-
-        /// <summary>
-        /// Execute a SQL request
-        /// </summary>
-        /// <param name="request">SQL request</param>
-        /// <param name="parameters">Parameters</param>
-        public int ExecuteNonQueryWithRequest(string request, List<DbParameter> parameters)
-        {
-            if (_disposed)
-                throw new ObjectDisposedException(typeof(DbManager).FullName);
-
-            using (DbCommand command = _connection.CreateCommand())
-            {
-                command.CommandType = CommandType.Text;
-                command.CommandText = request;
-
-                if (_transaction != null)
-                    command.Transaction = _transaction;
+                if (Transaction != null)
+                    command.Transaction = Transaction;
 
                 if (parameters != null && parameters.Count > 0)
                 {
@@ -407,51 +313,18 @@ namespace Byte.Toolkit.Db
             }
         }
 
-        /// <summary>
-        /// Execute a stored procedure
-        /// </summary>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        public int ExecuteNonQueryWithProcedure(string procedureName, List<DbParameter> parameters)
+        public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            using (DbCommand command = _connection.CreateCommand())
+            using (DbCommand command = Connection.CreateCommand())
             {
-                command.CommandType = CommandType.StoredProcedure;
-                command.CommandText = procedureName;
+                command.CommandType = commandType;
+                command.CommandText = commandText;
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
-
-                if (parameters != null && parameters.Count > 0)
-                {
-                    foreach (DbParameter param in parameters)
-                        command.Parameters.Add(param);
-                }
-
-                return command.ExecuteNonQuery();
-            }
-        }
-
-        /// <summary>
-        /// Execute a SQL request and returns the single result
-        /// </summary>
-        /// <param name="request">SQL request</param>
-        /// <param name="parameters">Parameters</param>
-        public object ExecuteScalarWithRequest(string request, List<DbParameter> parameters)
-        {
-            if (_disposed)
-                throw new ObjectDisposedException(typeof(DbManager).FullName);
-
-            using (DbCommand command = _connection.CreateCommand())
-            {
-                command.CommandType = CommandType.Text;
-                command.CommandText = request;
-
-                if (_transaction != null)
-                    command.Transaction = _transaction;
+                if (Transaction != null)
+                    command.Transaction = Transaction;
 
                 if (parameters != null && parameters.Count > 0)
                 {
@@ -463,90 +336,45 @@ namespace Byte.Toolkit.Db
             }
         }
 
-        /// <summary>
-        /// Execute a stored procedure and returns the single result
-        /// </summary>
-        /// <param name="procedureName">Procedure name</param>
-        /// <param name="parameters">Parameters</param>
-        public object ExecuteScalarWithProcedure(string procedureName, List<DbParameter> parameters)
+        public void AddQueries(Type t, Dictionary<string, string> queries)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            using (DbCommand command = _connection.CreateCommand())
-            {
-                command.CommandType = CommandType.StoredProcedure;
-                command.CommandText = procedureName;
+            if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
+                throw new InvalidDbObjectException(t);
 
-                if (_transaction != null)
-                    command.Transaction = _transaction;
-
-                if (parameters != null && parameters.Count > 0)
-                {
-                    foreach (DbParameter param in parameters)
-                        command.Parameters.Add(param);
-                }
-
-                return command.ExecuteScalar();
-            }
+            if (!Queries.ContainsKey(t))
+                Queries.Add(t, queries);
+            else
+                Queries[t] = queries;
         }
-
-        #endregion
-
-        #region RequestFileManager
-
-        /// <summary>
-        /// Add a request file
-        /// </summary>
-        /// <param name="name">Name of the request file</param>
-        /// <param name="requestFile">Path of the file</param>
-        public void AddRequestFile(string name, string filePath)
+        
+        public void AddQueriesFile(Type t, string file)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
 
-            if (_requests.ContainsKey(name))
-                throw new RequestFileAlreadyAddedException($"Name '{name}' already added");
-
-            _requests.Add(name, new Dictionary<string, string>());
+            if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
+                throw new InvalidDbObjectException(t);
 
             XmlDocument doc = new XmlDocument();
-            doc.Load(filePath);
+            doc.Load(file);
 
-            XmlNodeList requestList = doc.SelectNodes("/Requests/Request");
+            Queries.Add(t, new Dictionary<string, string>());
 
-            foreach (XmlNode requestNode in requestList)
+            XmlNodeList requestList = doc.SelectNodes("/Queries/Query");
+
+            foreach (XmlNode queryNode in requestList)
             {
-                XmlAttribute nameAttr = requestNode.Attributes["Name"];
+                XmlAttribute nameAttr = queryNode.Attributes["Name"];
 
                 if (nameAttr == null)
-                    throw new InvalidRequestFileException("Name attribute missing on a Request node");
+                    throw new InvalidQueriesFileException("Name attribute missing on a Query node");
 
-                _requests[name].Add(nameAttr.Value, requestNode.InnerText);
-            }
-
-            RequestFileManager manager = new RequestFileManager(this, name);
-            _requestFileManagers.Add(name, manager);
-        }
-
-        /// <summary>
-        /// Indexer for the request files
-        /// </summary>
-        /// <param name="name">Request file name</param>
-        public RequestFileManager this[string name]
-        {
-            get
-            {
-                if (_disposed)
-                    throw new ObjectDisposedException(typeof(DbManager).FullName);
-
-                if (!_requestFileManagers.ContainsKey(name))
-                    throw new RequestFileNotFoundException($"Request file '{name}' not found");
-                return _requestFileManagers[name];
+                Queries[t].Add(nameAttr.Value, queryNode.InnerText);
             }
         }
-
-        #endregion
 
         #region IDisposable members
 
@@ -570,16 +398,8 @@ namespace Byte.Toolkit.Db
 
             if (disposing)
             {
-                if (_connection != null)
-                {
-                    _connection.Dispose();
-                    _connection = null;
-                }
-
-                _transaction = null;
-                _factory = null;
-                _connectionString = null;
-                _provider = null;
+                Connection?.Dispose();
+                Transaction?.Dispose();
             }
 
             _disposed = true;
