@@ -13,17 +13,6 @@ namespace Byte.Toolkit.Db.Tester
         {
             try
             {
-                //DbProviderFactories.RegisterFactory("System.Data.SQLite", "System.Data.SQLite.SQLiteFactory, System.Data.SQLite");
-                //DbManager db = new DbManager(@"Data Source=test.db", "System.Data.SQLite");
-                //db.RegisterDbObject(typeof(Group));
-                //db.RegisterDbObject(typeof(Client));
-                //db.Open();
-
-                //Client? client = db.FillObject<Client>("select * from client where");
-                //Dictionary<string, Type> dic = db.GetQueryColumnsTypes("select id_client, client_acr, client_name, count(*) from client");
-
-                //db.Close();
-
                 DbLayer db = new DbLayer();
                 db.DbManager.Open();
 
@@ -102,7 +91,7 @@ namespace Byte.Toolkit.Db.Tester
         public GroupLayer(DbManager db)
             : base(db) { }
 
-        public List<Group> GetAllGroups() => Db.FillObjects<Group>(Queries[nameof(GetAllGroups)]);
+        public List<Group> GetAllGroups() => DbManager.FillObjects<Group>(Queries[nameof(GetAllGroups)]);
     }
 
     public class ClientLayer : DbObjectLayer<Client>
@@ -113,10 +102,10 @@ namespace Byte.Toolkit.Db.Tester
         public Client? GetClientById(Int64 id)
         {
             List<DbParameter> parameters = new List<DbParameter>();
-            parameters.Add(Db.CreateParameter("idClient", id));
-            return Db.FillSingleObject<Client>(Queries[nameof(GetClientById)], CommandType.Text, parameters);
+            parameters.Add(DbManager.CreateParameter("idClient", id));
+            return DbManager.FillSingleObject<Client>(Queries[nameof(GetClientById)], CommandType.Text, parameters);
         }
 
-        public List<Client> GetAllClients() => Db.FillObjects<Client>(Queries[nameof(GetAllClients)]);
+        public List<Client> GetAllClients() => DbManager.FillObjects<Client>(Queries[nameof(GetAllClients)]);
     }
 }

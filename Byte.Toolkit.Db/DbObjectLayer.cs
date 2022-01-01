@@ -10,20 +10,20 @@ namespace Byte.Toolkit.Db
     {
         public DbObjectLayer(DbManager db)
         {
-            Db = db;
+            DbManager = db;
         }
 
         /// <summary>
         /// DbManager reference
         /// </summary>
-        public DbManager Db { get; }
+        public DbManager DbManager { get; }
 
         /// <summary>
         /// DbObject queries reference
         /// </summary>
         public Dictionary<string, string> Queries
         {
-            get => Db.Queries[typeof(T)];
+            get => DbManager.Queries[typeof(T)];
         }
     }
 }
