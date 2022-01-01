@@ -9,21 +9,24 @@ namespace DbToolkitUnitTests
         public void TestDbLayer()
         {
             DbLayer db = new DbLayer();
-            db.DbManager.Open();
-
-            List<UserGroup> groups = db.UserGroup.GetAllGroups();
-
-            List<User> users = db.User.GetAllUsers();
-            User? user = db.User.GetUserById(2);
-
-            db.DbManager.Close();
-
-            Assert.Multiple(() =>
+            using (db.DbManager)
             {
-                Assert.That(groups.Count > 0);
-                Assert.That(users.Count > 0);
-                Assert.That(user?.Name == "Jimi Hendrix");
-            });
+                db.DbManager.Open();
+
+                List<UserGroup> groups = db.UserGroup.GetAllGroups();
+
+                List<User> users = db.User.GetAllUsers();
+                User? user = db.User.GetUserById(2);
+
+                db.DbManager.Close();
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(groups.Count > 0);
+                    Assert.That(users.Count > 0);
+                    Assert.That(user?.Name == "Jimi Hendrix");
+                });
+            }
         }
     }
 }
