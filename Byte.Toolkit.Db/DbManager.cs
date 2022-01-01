@@ -157,10 +157,13 @@ namespace Byte.Toolkit.Db
         /// <param name="paramDirection">Parameter direction</param>
         /// <returns>DbParameter</returns>
         /// <exception cref="ObjectDisposedException"></exception>
-        public DbParameter CreateParameter(string name, object value, ParameterDirection paramDirection = ParameterDirection.Input)
+        /// <exception cref="ArgumentNullException"></exception>
+        public DbParameter CreateParameter(string name, object? value, ParameterDirection paramDirection = ParameterDirection.Input)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (name == null)
+                throw new ArgumentNullException(nameof(name));
 
             DbParameter param = Factory.CreateParameter();
             param.ParameterName = name;
@@ -174,16 +177,17 @@ namespace Byte.Toolkit.Db
         /// </summary>
         /// <param name="t">Object type</param>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="DbObjectAlreadyRegisteredException"></exception>
         public void RegisterDbObject(Type t)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
-
+            if (t == null)
+                throw new ArgumentNullException(nameof(t));
             if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
                 throw new InvalidDbObjectException(t);
-
             if (TypeAccessors.ContainsKey(t) || TypeColumnPropMappings.ContainsKey(t))
                 throw new DbObjectAlreadyRegisteredException(t);
 
@@ -207,10 +211,15 @@ namespace Byte.Toolkit.Db
         /// <param name="commandType">Command type</param>
         /// <param name="parameters">Command parameters</param>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public void FillDataTable(DataTable table, string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (table == null)
+                throw new ArgumentNullException(nameof(table));
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
 
             using (DbCommand command = Connection.CreateCommand())
             {
@@ -243,12 +252,15 @@ namespace Byte.Toolkit.Db
         /// <param name="parameters">Command parameters</param>
         /// <returns>DbObject</returns>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="ObjectNotRegisteredException"></exception>
         public T? FillSingleObject<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
 
             Type t = typeof(T);
 
@@ -311,12 +323,15 @@ namespace Byte.Toolkit.Db
         /// <param name="parameters">Command parameters</param>
         /// <returns>DbObject list</returns>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="ObjectNotRegisteredException"></exception>
         public List<T> FillObjects<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
 
             Type t = typeof(T);
 
@@ -379,10 +394,13 @@ namespace Byte.Toolkit.Db
         /// <param name="parameters">Command parameters</param>
         /// <returns>The number of rows affected</returns>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public int ExecuteNonQuery(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
 
             using (DbCommand command = Connection.CreateCommand())
             {
@@ -410,10 +428,13 @@ namespace Byte.Toolkit.Db
         /// <param name="parameters">Command parameters</param>
         /// <returns>First column of the first row</returns>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
 
             using (DbCommand command = Connection.CreateCommand())
             {
@@ -440,8 +461,15 @@ namespace Byte.Toolkit.Db
         /// <param name="commandType">Command type</param>
         /// <param name="parameters">Command parameters</param>
         /// <returns>List of the columns and types</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public Dictionary<string, Type> GetQueryColumnsTypes(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(typeof(DbManager).FullName);
+            if (commandText == null)
+                throw new ArgumentNullException(nameof(commandText));
+
             Dictionary<string, Type> dic = new Dictionary<string, Type>();
 
             DataTable dt = new DataTable();
@@ -459,12 +487,16 @@ namespace Byte.Toolkit.Db
         /// <param name="t">DbObject type</param>
         /// <param name="queries">Queries</param>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         public void AddQueries(Type t, Dictionary<string, string> queries)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
-
+            if (t == null)
+                throw new ArgumentNullException(nameof(t));
+            if (queries == null)
+                throw new ArgumentNullException(nameof(queries));
             if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
                 throw new InvalidDbObjectException(t);
 
@@ -480,13 +512,17 @@ namespace Byte.Toolkit.Db
         /// <param name="t">DbObject type</param>
         /// <param name="file">Query file</param>
         /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="InvalidQueriesFileException"></exception>
         public void AddQueriesFile(Type t, string file)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
-
+            if (t == null)
+                throw new ArgumentNullException(nameof(t));
+            if (file == null)
+                throw new ArgumentNullException(nameof(file));
             if (Attribute.GetCustomAttribute(t, typeof(DbObjectAttribute)) == null)
                 throw new InvalidDbObjectException(t);
 
