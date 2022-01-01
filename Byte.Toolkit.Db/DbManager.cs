@@ -15,8 +15,6 @@ namespace Byte.Toolkit.Db
     {
         private bool _disposed;
 
-        #region Constructors
-
 #if NETSTANDARD2_0
         public DbManager(string connectionString, DbProviderFactory factory)
         {
@@ -45,8 +43,6 @@ namespace Byte.Toolkit.Db
         {
             Dispose(false);
         }
-
-#endregion
 
 #region Properties
 
