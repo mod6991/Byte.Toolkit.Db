@@ -1,4 +1,6 @@
-﻿namespace Byte.Toolkit.Db
+﻿using System;
+
+namespace Byte.Toolkit.Db
 {
     public class ObjectNotRegisteredException : Exception
     {

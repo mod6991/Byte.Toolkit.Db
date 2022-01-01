@@ -1,4 +1,6 @@
-﻿namespace Byte.Toolkit.Db
+﻿using System.Collections.Generic;
+
+namespace Byte.Toolkit.Db
 {
     /// <summary>
     /// DbObject layer abstract class

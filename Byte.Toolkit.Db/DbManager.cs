@@ -1,4 +1,6 @@
 ﻿using FastMember;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
@@ -15,6 +17,18 @@ namespace Byte.Toolkit.Db
 
         #region Constructors
 
+#if NETSTANDARD2_0
+        public DbManager(string connectionString, DbProviderFactory factory)
+        {
+            Factory = factory;
+            Connection = Factory.CreateConnection();
+            Connection.ConnectionString = connectionString;
+
+            TypeAccessors = new Dictionary<Type, TypeAccessor>();
+            TypeColumnPropMappings = new Dictionary<Type, Dictionary<string, string>>();
+            Queries = new Dictionary<Type, Dictionary<string, string>>();
+        }
+#elif (NETSTANDARD2_1_OR_GREATER || NET461_OR_GREATER)
         public DbManager(string connectionString, string provider)
         {
             Factory = DbProviderFactories.GetFactory(provider);
@@ -25,15 +39,16 @@ namespace Byte.Toolkit.Db
             TypeColumnPropMappings = new Dictionary<Type, Dictionary<string, string>>();
             Queries = new Dictionary<Type, Dictionary<string, string>>();
         }
+#endif
 
         ~DbManager()
         {
             Dispose(false);
         }
 
-        #endregion
+#endregion
 
-        #region Properties
+#region Properties
 
         /// <summary>
         /// Database provider factory
@@ -65,7 +80,7 @@ namespace Byte.Toolkit.Db
         /// </summary>
         public Dictionary<Type, Dictionary<string, string>> Queries { get; private set; }
 
-        #endregion
+#endregion
 
         /// <summary>
         /// Open a database connection
@@ -493,7 +508,7 @@ namespace Byte.Toolkit.Db
             }
         }
 
-        #region IDisposable members
+#region IDisposable members
 
         /// <summary>
         /// Releases all resources used
@@ -522,6 +537,6 @@ namespace Byte.Toolkit.Db
             _disposed = true;
         }
 
-        #endregion
+#endregion
     }
 }

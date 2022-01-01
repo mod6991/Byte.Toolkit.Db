@@ -114,7 +114,7 @@ namespace Byte.Toolkit.Db.Tester
         {
             List<DbParameter> parameters = new List<DbParameter>();
             parameters.Add(Db.CreateParameter("idClient", id));
-            return Db.FillObject<Client>(Queries[nameof(GetClientById)], CommandType.Text, parameters);
+            return Db.FillSingleObject<Client>(Queries[nameof(GetClientById)], CommandType.Text, parameters);
         }
 
         public List<Client> GetAllClients() => Db.FillObjects<Client>(Queries[nameof(GetAllClients)]);
