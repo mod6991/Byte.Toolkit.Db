@@ -6,6 +6,9 @@ using System.Xml;
 
 namespace Byte.Toolkit.Db
 {
+    /// <summary>
+    /// Database management class
+    /// </summary>
     public class DbManager : IDisposable
     {
         private bool _disposed;
@@ -32,19 +35,42 @@ namespace Byte.Toolkit.Db
 
         #region Properties
 
-        public bool Disposed { get => _disposed; }
+        /// <summary>
+        /// Database provider factory
+        /// </summary>
         public DbProviderFactory Factory { get; private set; }
+
+        /// <summary>
+        /// Database connection
+        /// </summary>
         public DbConnection Connection { get; private set; }
+
+        /// <summary>
+        /// Database transaction
+        /// </summary>
         public DbTransaction? Transaction { get; private set; }
+
+        /// <summary>
+        /// Type accessors
+        /// </summary>
         private Dictionary<Type, TypeAccessor> TypeAccessors { get; set; }
+
+        /// <summary>
+        /// Type column-property mappings
+        /// </summary>
         private Dictionary<Type, Dictionary<string, string>> TypeColumnPropMappings { get; set; }
+
+        /// <summary>
+        /// Queries
+        /// </summary>
         public Dictionary<Type, Dictionary<string, string>> Queries { get; private set; }
 
         #endregion
 
         /// <summary>
-        /// Open the connection to the database
+        /// Open a database connection
         /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void Open()
         {
             if (_disposed)
@@ -54,8 +80,9 @@ namespace Byte.Toolkit.Db
         }
 
         /// <summary>
-        /// Close the connection to the database
+        /// Close the database connection
         /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void Close()
         {
             if (_disposed)
@@ -65,8 +92,9 @@ namespace Byte.Toolkit.Db
         }
 
         /// <summary>
-        /// Start a database transaction
+        /// Start a database Transaction
         /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void BeginTransaction()
         {
             if (_disposed)
@@ -76,9 +104,10 @@ namespace Byte.Toolkit.Db
         }
 
         /// <summary>
-        /// End a database transaction.
+        /// End the database transaction with a commit or a rollback
         /// </summary>
-        /// <param name="commit">Commits the transaction</param>
+        /// <param name="commit">Commit or Rollback</param>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void EndTransaction(bool commit)
         {
             if (_disposed)
@@ -95,6 +124,8 @@ namespace Byte.Toolkit.Db
         /// <summary>
         /// Return a new parameter
         /// </summary>
+        /// <returns>DbParameter</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
         public DbParameter CreateParameter()
         {
             if (_disposed)
@@ -109,6 +140,8 @@ namespace Byte.Toolkit.Db
         /// <param name="name">Parameter name</param>
         /// <param name="value">Parameter value</param>
         /// <param name="paramDirection">Parameter direction</param>
+        /// <returns>DbParameter</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
         public DbParameter CreateParameter(string name, object value, ParameterDirection paramDirection = ParameterDirection.Input)
         {
             if (_disposed)
@@ -122,9 +155,12 @@ namespace Byte.Toolkit.Db
         }
 
         /// <summary>
-        /// Register a DbObject
+        /// Register a DbObject using attribute <see cref="DbObjectAttribute"/>
         /// </summary>
         /// <param name="t">Object type</param>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidDbObjectException"></exception>
+        /// <exception cref="DbObjectAlreadyRegisteredException"></exception>
         public void RegisterDbObject(Type t)
         {
             if (_disposed)
@@ -148,6 +184,14 @@ namespace Byte.Toolkit.Db
             }
         }
 
+        /// <summary>
+        /// Fill a DataTable with a query
+        /// </summary>
+        /// <param name="table">DataTable to fill</param>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void FillDataTable(DataTable table, string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
@@ -175,7 +219,18 @@ namespace Byte.Toolkit.Db
             }
         }
 
-        public T? FillObject<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        /// <summary>
+        /// Fill a single object with a query
+        /// </summary>
+        /// <typeparam name="T">DbObject type</typeparam>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <returns>DbObject</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidDbObjectException"></exception>
+        /// <exception cref="ObjectNotRegisteredException"></exception>
+        public T? FillSingleObject<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -232,6 +287,17 @@ namespace Byte.Toolkit.Db
             return obj;
         }
 
+        /// <summary>
+        /// Fill an object list with a query
+        /// </summary>
+        /// <typeparam name="T">DbObject type</typeparam>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <returns>DbObject list</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidDbObjectException"></exception>
+        /// <exception cref="ObjectNotRegisteredException"></exception>
         public List<T> FillObjects<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
@@ -290,6 +356,14 @@ namespace Byte.Toolkit.Db
             return list;
         }
 
+        /// <summary>
+        /// Execute a SQL statement
+        /// </summary>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <returns>The number of rows affected</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
         public int ExecuteNonQuery(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
@@ -313,6 +387,14 @@ namespace Byte.Toolkit.Db
             }
         }
 
+        /// <summary>
+        /// Execute a query and returns the first column of the first row
+        /// </summary>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <returns>First column of the first row</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
         public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             if (_disposed)
@@ -336,6 +418,13 @@ namespace Byte.Toolkit.Db
             }
         }
 
+        /// <summary>
+        /// Get the list of the columns names and types
+        /// </summary>
+        /// <param name="commandText">Command text</param>
+        /// <param name="commandType">Command type</param>
+        /// <param name="parameters">Command parameters</param>
+        /// <returns>List of the columns and types</returns>
         public Dictionary<string, Type> GetQueryColumnsTypes(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
         {
             Dictionary<string, Type> dic = new Dictionary<string, Type>();
@@ -349,6 +438,13 @@ namespace Byte.Toolkit.Db
             return dic;
         }
 
+        /// <summary>
+        /// Add queries for a DbObject
+        /// </summary>
+        /// <param name="t">DbObject type</param>
+        /// <param name="queries">Queries</param>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidDbObjectException"></exception>
         public void AddQueries(Type t, Dictionary<string, string> queries)
         {
             if (_disposed)
@@ -363,6 +459,14 @@ namespace Byte.Toolkit.Db
                 Queries[t] = queries;
         }
         
+        /// <summary>
+        /// Add queries file for a DbObject
+        /// </summary>
+        /// <param name="t">DbObject type</param>
+        /// <param name="file">Query file</param>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidDbObjectException"></exception>
+        /// <exception cref="InvalidQueriesFileException"></exception>
         public void AddQueriesFile(Type t, string file)
         {
             if (_disposed)
