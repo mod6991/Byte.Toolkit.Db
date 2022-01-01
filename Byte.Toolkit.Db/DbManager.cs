@@ -336,6 +336,19 @@ namespace Byte.Toolkit.Db
             }
         }
 
+        public Dictionary<string, Type> GetQueryColumnsTypes(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        {
+            Dictionary<string, Type> dic = new Dictionary<string, Type>();
+
+            DataTable dt = new DataTable();
+            FillDataTable(dt, commandText, commandType, parameters);
+
+            foreach (DataColumn col in dt.Columns)
+                dic.Add(col.ColumnName, col.DataType);
+
+            return dic;
+        }
+
         public void AddQueries(Type t, Dictionary<string, string> queries)
         {
             if (_disposed)
