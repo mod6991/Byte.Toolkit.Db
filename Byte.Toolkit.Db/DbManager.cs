@@ -426,7 +426,7 @@ namespace Byte.Toolkit.Db
         /// <returns>First column of the first row</returns>
         /// <exception cref="ObjectDisposedException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
+        public object ExecuteScalar(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
