@@ -130,6 +130,7 @@ namespace Byte.Toolkit.Db
                 Transaction?.Rollback();
 
             Transaction?.Dispose();
+            Transaction = null;
         }
 
         /// <summary>
