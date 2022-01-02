@@ -208,7 +208,7 @@ namespace Byte.Toolkit.Db
         /// <param name="parameters">Command parameters</param>
         /// <exception cref="ObjectDisposedException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public void FillDataTable(DataTable table, string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public void FillDataTable(DataTable table, string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -225,7 +225,7 @@ namespace Byte.Toolkit.Db
                 if (Transaction != null)
                     command.Transaction = Transaction;
 
-                if (parameters != null && parameters.Count > 0)
+                if (parameters != null)
                 {
                     foreach (DbParameter param in parameters)
                         command.Parameters.Add(param);
@@ -251,7 +251,7 @@ namespace Byte.Toolkit.Db
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="ObjectNotRegisteredException"></exception>
-        public T? FillSingleObject<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public T? FillSingleObject<T>(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -277,7 +277,7 @@ namespace Byte.Toolkit.Db
                 if (Transaction != null)
                     command.Transaction = Transaction;
 
-                if (parameters != null && parameters.Count > 0)
+                if (parameters != null)
                 {
                     foreach (DbParameter param in parameters)
                         command.Parameters.Add(param);
@@ -322,7 +322,7 @@ namespace Byte.Toolkit.Db
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="InvalidDbObjectException"></exception>
         /// <exception cref="ObjectNotRegisteredException"></exception>
-        public List<T> FillObjects<T>(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public List<T> FillObjects<T>(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -348,7 +348,7 @@ namespace Byte.Toolkit.Db
                 if (Transaction != null)
                     command.Transaction = Transaction;
 
-                if (parameters != null && parameters.Count > 0)
+                if (parameters != null)
                 {
                     foreach (DbParameter param in parameters)
                         command.Parameters.Add(param);
@@ -391,7 +391,7 @@ namespace Byte.Toolkit.Db
         /// <returns>The number of rows affected</returns>
         /// <exception cref="ObjectDisposedException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public int ExecuteNonQuery(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public int ExecuteNonQuery(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -406,7 +406,7 @@ namespace Byte.Toolkit.Db
                 if (Transaction != null)
                     command.Transaction = Transaction;
 
-                if (parameters != null && parameters.Count > 0)
+                if (parameters != null)
                 {
                     foreach (DbParameter param in parameters)
                         command.Parameters.Add(param);
@@ -425,7 +425,7 @@ namespace Byte.Toolkit.Db
         /// <returns>First column of the first row</returns>
         /// <exception cref="ObjectDisposedException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public object ExecuteScalarWithRequest(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
@@ -440,7 +440,7 @@ namespace Byte.Toolkit.Db
                 if (Transaction != null)
                     command.Transaction = Transaction;
 
-                if (parameters != null && parameters.Count > 0)
+                if (parameters != null)
                 {
                     foreach (DbParameter param in parameters)
                         command.Parameters.Add(param);
@@ -459,7 +459,7 @@ namespace Byte.Toolkit.Db
         /// <returns>List of the columns and types</returns>
         /// <exception cref="ObjectDisposedException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public Dictionary<string, Type> GetQueryColumnsTypes(string commandText, CommandType commandType = CommandType.Text, List<DbParameter>? parameters = null)
+        public Dictionary<string, Type> GetColumnsNamesAndTypes(string commandText, CommandType commandType = CommandType.Text, IEnumerable<DbParameter>? parameters = null)
         {
             if (_disposed)
                 throw new ObjectDisposedException(typeof(DbManager).FullName);
