@@ -33,4 +33,10 @@ namespace DbToolkitUnitTests
         [DbColumn("FULL_NAME")]
         public string? Name { get; set; }
     }
+
+    internal class TestObject
+    {
+        [DbColumn("Name")]
+        public string? Name { get; set; }
+    }
 }
