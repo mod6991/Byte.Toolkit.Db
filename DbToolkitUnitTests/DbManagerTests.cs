@@ -1,5 +1,6 @@
 using Byte.Toolkit.Db;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -107,12 +108,79 @@ namespace DbToolkitUnitTests
             }
         }
 
-        //test fill datatable
-        //test fill single object
-        //test fill object list
-        //test non query
-        //test scalar
-        //test get columns names types
+        [Test]
+        public void TestFillDataTable()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.Open();
 
+                DataTable dt = new DataTable();
+                db.FillDataTable(dt, "select * from user");
+                Assert.That(dt.Rows.Count > 0);
+            }
+        }
+
+        [Test]
+        public void TestFillSingleObject()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.RegisterDbObject(typeof(UserGroup));
+                db.Open();
+
+                UserGroup? group = db.FillSingleObject<UserGroup>("select * from user_group where group_id = 1");
+                Assert.That(group != null);
+            }
+        }
+
+        [Test]
+        public void TestFillObjectList()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.RegisterDbObject(typeof(UserGroup));
+                db.Open();
+
+                List<UserGroup> groups = db.FillObjects<UserGroup>("select * from user_group");
+                Assert.That(groups.Count > 0);
+            }
+        }
+
+        [Test]
+        public void TestExecuteNonQuery()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.Open();
+
+                int affected = db.ExecuteNonQuery("update user set password = 'blahblah'");
+                Assert.That(affected > 0);
+            }
+        }
+
+        [Test]
+        public void TestExecuteScalar()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.Open();
+
+                object obj = db.ExecuteScalar("select * from user");
+                Assert.That(obj != null);
+            }
+        }
+
+        [Test]
+        public void TestGetColumnsNamesAndTypes()
+        {
+            using (DbManager db = GetDbManagerSqlite())
+            {
+                db.Open();
+
+                Dictionary<string, Type> dic = db.GetColumnsNamesAndTypes("select * from user");
+                Assert.That(dic.Count > 0);
+            }
+        }
     }
 }
