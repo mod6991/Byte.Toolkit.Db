@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DbCodeGen>
+	<DbConnection>
+		<ConnectionString>Data Source=testdb.sqlite</ConnectionString>
+		<ProviderName>System.Data.SQLite</ProviderName>
+		<FactoryType>System.Data.SQLite.SQLiteFactory, System.Data.SQLite</FactoryType>
+	</DbConnection>
+	<Settings>
+		<Output>C:\Temp\</Output>
+		<ObjectsNamespace>MyProject.Database.Objects</ObjectsNamespace>
+		<LayersNamespace>MyProject.Database</LayersNamespace>
+		<ParameterChar>@</ParameterChar>
+		<!-- NameType possible values: SnakeCaseToCamelCase, FirstLetterUpper -->
+		<NameType>SnakeCaseToCamelCase</NameType>
+		<!-- PropertyType possible values: GetSet, Notify -->
+		<PropertyType>GetSet</PropertyType>
+		<!-- PropertySetTemplate: {0} -> private field, {1} -> public property -->
+		<PropertySetTemplate>set => SetProperty(ref {0}, value);</PropertySetTemplate>
+		<NullableTypes>True</NullableTypes>
+	</Settings>
+	<Objects>
+		<Object Name="User" TableName="USER" IdColumn="USER_ID">
+			<ColumnsSelectionQuery>SELECT * FROM USER</ColumnsSelectionQuery>
+		</Object>
+	</Objects>
+</DbCodeGen>
