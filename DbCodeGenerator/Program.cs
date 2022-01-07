@@ -15,7 +15,13 @@ namespace DbCodeGenerator
         {
             try
             {
-                _xml = new InputXml("sample.xml");
+                if (args.Length == 0)
+                {
+                    Console.WriteLine("Usage: DbCodeGenerator.exe <input_xml_file>");
+                    return;
+                }
+
+                _xml = new InputXml(args[0]);
 
                 DbProviderFactories.RegisterFactory(_xml.ProviderName, _xml.FactoryType);
                 using (DbManager db = new DbManager(_xml.ConnectionString, _xml.ProviderName))
@@ -55,6 +61,7 @@ namespace DbCodeGenerator
                     sw.WriteLine($"using Byte.Toolkit.Db;");
                     sw.WriteLine($"using System;");
                     sw.WriteLine($"using System.Data.Common;");
+                    sw.WriteLine($"using {_xml.ObjectsNamespace};");
                     sw.WriteLine();
                     sw.WriteLine($"namespace {_xml.LayersNamespace}");
                     sw.WriteLine($"{{");
@@ -63,7 +70,7 @@ namespace DbCodeGenerator
                     sw.WriteLine($"        public {_xml.DbClassName}()");
                     sw.WriteLine($"        {{");
                     sw.WriteLine($"            DbProviderFactories.RegisterFactory(\"{_xml.ProviderName}\", \"{_xml.FactoryType}\");");
-                    sw.WriteLine($"            DbManager = new DbManager(\"{_xml.ConnectionString}\", \"{_xml.ProviderName}\");");
+                    sw.WriteLine($"            DbManager = new DbManager(@\"{_xml.ConnectionString}\", \"{_xml.ProviderName}\");");
                     sw.WriteLine();
 
                     int i = 0;
@@ -89,7 +96,7 @@ namespace DbCodeGenerator
                     }
 
                     sw.WriteLine();
-                    sw.WriteLine($"        public object GetValueOrDBNull(object value) => value ?? DBNull.Value;");
+                    sw.WriteLine($"        public object GetValueOrDBNull(object? value) => value ?? DBNull.Value;");
 
                     sw.WriteLine($"    }}");
                     sw.WriteLine($"}}");
@@ -253,7 +260,7 @@ namespace DbCodeGenerator
             if (_xml == null)
                 throw new InvalidInputXml("Input XML file is null");
 
-            string file = Path.Combine(_xml.Output, $"{obj.Name}Layer.cs");
+            string file = Path.Combine(_xml.Output, $"{_xml.DbClassName}.{obj.Name}Layer.cs");
 
             using (FileStream fs = new FileStream(file, FileMode.Create, FileAccess.Write))
             {
@@ -266,8 +273,8 @@ namespace DbCodeGenerator
                     sw.WriteLine($"using Byte.Toolkit.Db;");
                     sw.WriteLine($"using System;");
                     sw.WriteLine($"using System.Collections.Generic;");
-                    sw.WriteLine($"using System.Data;");
                     sw.WriteLine($"using System.Data.Common;");
+                    sw.WriteLine($"using {_xml.ObjectsNamespace};");
                     sw.WriteLine();
                     sw.WriteLine($"namespace {_xml.LayersNamespace}");
                     sw.WriteLine($"{{");
@@ -281,7 +288,7 @@ namespace DbCodeGenerator
                     sw.WriteLine();
                     sw.WriteLine($"        public {_xml.DbClassName} {_xml.DbClassName} {{ get; }}");
                     sw.WriteLine();
-                    sw.WriteLine($"        public {obj.Name} Select{obj.Name}ById({columnIdType} {columnIdParameter})");
+                    sw.WriteLine($"        public {obj.Name}? Select{obj.Name}ById({columnIdType} {columnIdParameter})");
                     sw.WriteLine($"        {{");
                     sw.WriteLine($"            List<DbParameter> parameters = new List<DbParameter>();");
                     sw.WriteLine($"            parameters.Add(DbManager.CreateParameter(\"{columnIdParameter}\", {columnIdParameter}));");
