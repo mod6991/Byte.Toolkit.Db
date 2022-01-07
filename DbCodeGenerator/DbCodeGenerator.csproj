@@ -3,7 +3,11 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-	  <Nullable>enable</Nullable>
+	<Nullable>enable</Nullable>
+	<Authors>Josué Clément</Authors>
+	<Copyright>Copyright © 2022 Josué Clément</Copyright>
+	<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	<FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
