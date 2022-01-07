@@ -27,11 +27,14 @@ namespace DbCodeGenerator
             FactoryType = GetTagValue("/DbCodeGen/DbConnection/FactoryType");
 
             Output = GetTagValue("/DbCodeGen/Settings/Output");
+            DbClassName = GetTagValue("/DbCodeGen/Settings/DbClassName");
             ObjectsNamespace = GetTagValue("/DbCodeGen/Settings/ObjectsNamespace");
             LayersNamespace = GetTagValue("/DbCodeGen/Settings/LayersNamespace");
             ParameterChar = GetTagValue("/DbCodeGen/Settings/ParameterChar");
             NameType = EnumHelper.GetEnumValue<NameType>(GetTagValue("/DbCodeGen/Settings/NameType"));
             PropertyType = EnumHelper.GetEnumValue<PropertyType>(GetTagValue("/DbCodeGen/Settings/PropertyType"));
+            NotifyClass = GetTagValue("/DbCodeGen/Settings/NotifyClass");
+            NotifyUsing = GetTagValue("/DbCodeGen/Settings/NotifyUsing");
             PropertySetTemplate = GetTagValue("/DbCodeGen/Settings/PropertySetTemplate");
             NullableTypes = bool.Parse(GetTagValue("/DbCodeGen/Settings/NullableTypes"));
 
@@ -65,11 +68,14 @@ namespace DbCodeGenerator
         public string FactoryType { get; set; }
 
         public string Output { get; set; }
+        public string DbClassName { get; set; }
         public string ObjectsNamespace { get; set; }
         public string LayersNamespace { get; set; }
         public string ParameterChar { get; set; }
         public NameType NameType { get; set; }
         public PropertyType PropertyType { get; set; }
+        public string NotifyClass { get; set; }
+        public string NotifyUsing { get; set; }
         public string PropertySetTemplate { get; set; }
         public bool NullableTypes { get; set; }
 

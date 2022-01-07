@@ -22,6 +22,8 @@ namespace DbCodeGenerator
                 {
                     db.Open();
 
+                    GenerateDbLayer();
+
                     foreach (DbObject obj in _xml.Objects)
                     {
                         Dictionary<string, Type> columns = db.GetColumnsNamesAndTypes(obj.Query);
@@ -36,6 +38,59 @@ namespace DbCodeGenerator
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+            }
+        }
+
+        static void GenerateDbLayer()
+        {
+            if (_xml == null)
+                throw new InvalidInputXml("Input XML file is null");
+
+            string file = Path.Combine(_xml.Output, $"{_xml.DbClassName}.cs");
+
+            using (FileStream fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+            {
+                using (StreamWriter sw = new StreamWriter(fs, new UTF8Encoding(false)))
+                {
+                    sw.WriteLine($"using Byte.Toolkit.Db;");
+                    sw.WriteLine($"using System;");
+                    sw.WriteLine($"using System.Data.Common;");
+                    sw.WriteLine();
+                    sw.WriteLine($"namespace {_xml.LayersNamespace}");
+                    sw.WriteLine($"{{");
+                    sw.WriteLine($"    internal class {_xml.DbClassName}");
+                    sw.WriteLine($"    {{");
+                    sw.WriteLine($"        public {_xml.DbClassName}()");
+                    sw.WriteLine($"        {{");
+                    sw.WriteLine($"            DbProviderFactories.RegisterFactory(\"{_xml.ProviderName}\", \"{_xml.FactoryType}\");");
+                    sw.WriteLine($"            DbManager = new DbManager(\"{_xml.ConnectionString}\", \"{_xml.ProviderName}\");");
+                    sw.WriteLine();
+
+                    int i = 0;
+                    foreach(DbObject obj in _xml.Objects)
+                    {
+                        sw.WriteLine($"            DbManager.RegisterDbObject(typeof({obj.Name}));");
+                        sw.WriteLine($"            DbManager.AddQueriesFile(typeof({obj.Name}), @\"Queries\\{obj.Name}.xml\");");
+                        sw.WriteLine($"            {obj.Name} = new {obj.Name}Layer(DbManager);");
+
+                        if (i < _xml.Objects.Count - 1)
+                            sw.WriteLine();
+
+                        i++;
+                    }
+
+                    sw.WriteLine($"        }}");
+                    sw.WriteLine();
+                    sw.WriteLine($"        public DbManager DbManager {{ get; set; }}");
+
+                    foreach(DbObject obj in _xml.Objects)
+                    {
+                        sw.WriteLine($"        public {obj.Name}Layer {obj.Name} {{ get; set; }}");
+                    }
+
+                    sw.WriteLine($"    }}");
+                    sw.WriteLine($"}}");
+                }
             }
         }
 
@@ -56,12 +111,21 @@ namespace DbCodeGenerator
                 using (StreamWriter sw = new StreamWriter(fs, new UTF8Encoding(false)))
                 {
                     sw.WriteLine($"using Byte.Toolkit.Db;");
+
+                    if (_xml.PropertyType == PropertyType.Notify)
+                        sw.WriteLine($"using {_xml.NotifyUsing};");
+
                     sw.WriteLine($"using System;");
                     sw.WriteLine();
                     sw.WriteLine($"namespace {_xml.ObjectsNamespace}");
                     sw.WriteLine($"{{");
                     sw.WriteLine($"    [DbObject]");
-                    sw.WriteLine($"    internal class {obj.Name}");
+
+                    if (_xml.PropertyType == PropertyType.Notify)
+                        sw.WriteLine($"    internal class {obj.Name} : {_xml.NotifyClass}");
+                    else
+                        sw.WriteLine($"    internal class {obj.Name}");
+
                     sw.WriteLine($"    {{");
 
                     if (_xml.PropertyType == PropertyType.Notify)

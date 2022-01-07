@@ -7,6 +7,7 @@
 	</DbConnection>
 	<Settings>
 		<Output>C:\Temp\</Output>
+		<DbClassName>MyDatabase</DbClassName>
 		<ObjectsNamespace>MyProject.Database.Objects</ObjectsNamespace>
 		<LayersNamespace>MyProject.Database</LayersNamespace>
 		<ParameterChar>@</ParameterChar>
@@ -14,13 +15,18 @@
 		<NameType>SnakeCaseToCamelCase</NameType>
 		<!-- PropertyType possible values: GetSet, Notify -->
 		<PropertyType>GetSet</PropertyType>
+		<NotifyClass>ObservableObject</NotifyClass>
+		<NotifyUsing>Microsoft.Toolkit.Mvvm.ComponentModel</NotifyUsing>
 		<!-- PropertySetTemplate: {0} -> private field, {1} -> public property -->
 		<PropertySetTemplate>set => SetProperty(ref {0}, value);</PropertySetTemplate>
 		<NullableTypes>True</NullableTypes>
 	</Settings>
 	<Objects>
-		<Object Name="User" TableName="USER" IdColumn="USER_ID">
+		<Object Name="User" TableName="USER">
 			<ColumnsSelectionQuery>SELECT * FROM USER</ColumnsSelectionQuery>
+		</Object>
+		<Object Name="UserGroup" TableName="USER_GROUP">
+			<ColumnsSelectionQuery>SELECT * FROM USER_GROUP</ColumnsSelectionQuery>
 		</Object>
 	</Objects>
 </DbCodeGen>
