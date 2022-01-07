@@ -71,7 +71,7 @@ namespace DbCodeGenerator
                     {
                         sw.WriteLine($"            DbManager.RegisterDbObject(typeof({obj.Name}));");
                         sw.WriteLine($"            DbManager.AddQueriesFile(typeof({obj.Name}), @\"Queries\\{obj.Name}.xml\");");
-                        sw.WriteLine($"            {obj.Name} = new {obj.Name}Layer(DbManager);");
+                        sw.WriteLine($"            {obj.Name} = new {obj.Name}Layer(DbManager, this);");
 
                         if (i < _xml.Objects.Count - 1)
                             sw.WriteLine();
@@ -87,6 +87,9 @@ namespace DbCodeGenerator
                     {
                         sw.WriteLine($"        public {obj.Name}Layer {obj.Name} {{ get; set; }}");
                     }
+
+                    sw.WriteLine();
+                    sw.WriteLine($"        public object GetValueOrDBNull(object value) => value ?? DBNull.Value;");
 
                     sw.WriteLine($"    }}");
                     sw.WriteLine($"}}");
@@ -258,6 +261,7 @@ namespace DbCodeGenerator
                 {
                     string columnIdType = obj.Properties[0].TypeNameWithoutNullable;
                     string columnIdParameter = obj.Properties[0].ParameterName;
+                    string dbClassInstance = _xml.DbClassName.Substring(0, 1).ToLower() + _xml.DbClassName.Substring(1);
 
                     sw.WriteLine($"using Byte.Toolkit.Db;");
                     sw.WriteLine($"using System;");
@@ -269,8 +273,13 @@ namespace DbCodeGenerator
                     sw.WriteLine($"{{");
                     sw.WriteLine($"    internal class {obj.Name}Layer : DbObjectLayer<{obj.Name}>");
                     sw.WriteLine($"    {{");
-                    sw.WriteLine($"        public {obj.Name}Layer(DbManager db)");
-                    sw.WriteLine($"            : base(db) {{ }}");
+                    sw.WriteLine($"        public {obj.Name}Layer(DbManager db, {_xml.DbClassName} {dbClassInstance})");
+                    sw.WriteLine($"            : base(db)");
+                    sw.WriteLine($"        {{");
+                    sw.WriteLine($"            {_xml.DbClassName} = {dbClassInstance};");
+                    sw.WriteLine($"        }}");
+                    sw.WriteLine();
+                    sw.WriteLine($"        public {_xml.DbClassName} {_xml.DbClassName} {{ get; }}");
                     sw.WriteLine();
                     sw.WriteLine($"        public {obj.Name} Select{obj.Name}ById({columnIdType} {columnIdParameter})");
                     sw.WriteLine($"        {{");
@@ -286,7 +295,7 @@ namespace DbCodeGenerator
                     sw.WriteLine($"            List<DbParameter> parameters = new List<DbParameter>();");
                     
                     foreach (DbProperty prop in obj.Properties)
-                        sw.WriteLine($"            parameters.Add(DbManager.CreateParameter(\"{prop.ParameterName}\", {obj.NameInstance}.{prop.PropertyName}));");
+                        sw.WriteLine($"            parameters.Add(DbManager.CreateParameter(\"{prop.ParameterName}\", {_xml.DbClassName}.GetValueOrDBNull({obj.NameInstance}.{prop.PropertyName})));");
 
                     sw.WriteLine($"            return DbManager.ExecuteNonQuery(Queries[\"Insert{obj.Name}\"], parameters: parameters);");
                     sw.WriteLine($"        }}");
@@ -296,7 +305,7 @@ namespace DbCodeGenerator
                     sw.WriteLine($"            List<DbParameter> parameters = new List<DbParameter>();");
                     
                     foreach (DbProperty prop in obj.Properties)
-                        sw.WriteLine($"            parameters.Add(DbManager.CreateParameter(\"{prop.ParameterName}\", {obj.NameInstance}.{prop.PropertyName}));");
+                        sw.WriteLine($"            parameters.Add(DbManager.CreateParameter(\"{prop.ParameterName}\", {_xml.DbClassName}.GetValueOrDBNull({obj.NameInstance}.{prop.PropertyName})));");
 
                     sw.WriteLine($"            return DbManager.ExecuteNonQuery(Queries[\"Update{obj.Name}\"], parameters: parameters);");
                     sw.WriteLine($"        }}");
